@@ -1,5 +1,7 @@
 # KlangBench — Modular Audio Generation & Vintage Test Equipment Workstation
 
+[![CI](https://github.com/voidwave-lab/KlangBench/actions/workflows/ci.yml/badge.svg)](https://github.com/voidwave-lab/KlangBench/actions/workflows/ci.yml)
+
 **KlangBench** is a high-performance, real-time modular audio synthesis, vintage laboratory test-equipment emulation, stereo pedalboard, and 4-track cassette recording workstation written in Rust.
 
 Drawing inspiration from electronic music pioneers and experimental test-equipment setups (such as Hainbach, mid-century Brüel & Kjær acoustic analyzers, EG&G Princeton Applied Research lock-in amplifiers, micro-cassette tape loops, and boutique granular/FDN effects), KlangBench provides a **dual-interface architecture**:
