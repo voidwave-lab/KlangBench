@@ -1,0 +1,22 @@
+# Rust / Cargo build artifacts
+/target/
+**/*.rs.bk
+*.pdb
+
+# Recorded audio sessions (keep folder via .gitkeep, ignore WAV exports)
+/recordings/*.wav
+/recordings/*.flac
+/recordings/*.mp3
+
+# macOS / OS metadata
+.DS_Store
+AppleDouble
+.LSOverride
+._*
+
+# Editor & IDE directories
+.vscode/
+.idea/
+*.swp
+*.swo
+*~

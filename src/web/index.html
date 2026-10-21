@@ -1,0 +1,1747 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>KlangBench — Modular Audio Generation & Vintage Test Equipment Workstation</title>
+<style>
+  :root {
+    --bg-rack: #151716;
+    --panel-olive: #232724;
+    --panel-dk: #1b1e1c;
+    --panel-par: #1e2329;
+    --panel-tascam: #222026;
+    --bezel: #383e3a;
+    --amber: #ffb830;
+    --amber-dim: #7a5510;
+    --crt-green: #38ff7a;
+    --crt-amber: #ffae2b;
+    --cream: #e8e2d0;
+    --muted: #989c94;
+    --danger: #ff3b30;
+    --cyan: #4ad8ff;
+  }
+  * { box-sizing: border-box; user-select: none; }
+  body {
+    margin: 0;
+    background: radial-gradient(circle at 50% 0%, #232825 0%, #0e100f 100%);
+    color: var(--cream);
+    font-family: "JetBrains Mono", "SF Mono", "Menlo", "Consolas", monospace;
+    font-size: 12px;
+    min-height: 100vh;
+  }
+  /* Top Master Rack Header */
+  header {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 18px;
+    background: linear-gradient(180deg, #282c29 0%, #171a18 100%);
+    border-bottom: 2px solid #3c423e;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.6);
+    gap: 12px;
+  }
+  .brand {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .brand-badge {
+    background: #111;
+    border: 1px solid var(--amber);
+    color: var(--amber);
+    padding: 4px 10px;
+    font-weight: 800;
+    letter-spacing: 2px;
+    font-size: 15px;
+    box-shadow: inset 0 0 8px rgba(255,184,48,0.25);
+  }
+  .brand-sub {
+    color: var(--muted);
+    font-size: 11px;
+  }
+  .tab-bar {
+    display: flex;
+    gap: 6px;
+  }
+  .tab-btn {
+    background: #181b19;
+    color: var(--muted);
+    border: 1px solid #3c423e;
+    padding: 7px 14px;
+    font-family: inherit;
+    font-size: 11px;
+    font-weight: 700;
+    cursor: pointer;
+    letter-spacing: 0.8px;
+    transition: all 0.15s;
+  }
+  .tab-btn:hover {
+    color: var(--cream);
+    border-color: var(--amber);
+  }
+  .tab-btn.active {
+    background: var(--amber);
+    color: #111;
+    border-color: var(--amber);
+    box-shadow: 0 0 12px rgba(255,184,48,0.4);
+  }
+  .master-strip {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+  }
+  .rec-btn {
+    background: #2a1414;
+    color: #ff8a80;
+    border: 1px solid #802828;
+    padding: 7px 14px;
+    font-family: inherit;
+    font-weight: 700;
+    cursor: pointer;
+    border-radius: 3px;
+    display: flex;
+    align-items: center;
+    gap: 7px;
+  }
+  .rec-btn.recording {
+    background: var(--danger);
+    color: #fff;
+    border-color: #ff9999;
+    box-shadow: 0 0 15px rgba(255, 59, 48, 0.8);
+    animation: pulseRec 1s infinite alternate;
+  }
+  @keyframes pulseRec {
+    from { opacity: 1.0; }
+    to { opacity: 0.72; }
+  }
+  /* Main Grid Layout */
+  .tab-view { display: none; padding: 14px; }
+  .tab-view.active { display: block; }
+  .rack-grid {
+    display: grid;
+    grid-template-columns: repeat(12, 1fr);
+    gap: 12px;
+  }
+  .module-card {
+    background: linear-gradient(180deg, var(--panel-olive) 0%, var(--panel-dk) 100%);
+    border: 2px solid var(--bezel);
+    border-radius: 4px;
+    padding: 12px;
+    box-shadow: inset 0 1px 0 rgba(255,255,255,0.06), 0 6px 14px rgba(0,0,0,0.45);
+    position: relative;
+  }
+  .module-card.par-style {
+    background: linear-gradient(180deg, #212830 0%, #161b20 100%);
+    border-color: #3e4c59;
+  }
+  .module-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1px solid rgba(255,255,255,0.1);
+    padding-bottom: 6px;
+    margin-bottom: 10px;
+  }
+  .module-title {
+    font-weight: 800;
+    color: var(--amber);
+    letter-spacing: 1px;
+    font-size: 12px;
+  }
+  .module-tag {
+    font-size: 10px;
+    color: var(--muted);
+    background: rgba(0,0,0,0.35);
+    padding: 2px 6px;
+    border-radius: 2px;
+  }
+  /* LED Indicators */
+  .led {
+    display: inline-block;
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: #2c2f2d;
+    border: 1px solid #000;
+    vertical-align: middle;
+  }
+  .led.on-green {
+    background: #38ff7a;
+    box-shadow: 0 0 8px #38ff7a;
+  }
+  .led.on-amber {
+    background: #ffb830;
+    box-shadow: 0 0 8px #ffb830;
+  }
+  .led.on-red {
+    background: #ff3b30;
+    box-shadow: 0 0 10px #ff3b30;
+  }
+  /* Controls Row */
+  .controls-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(115px, 1fr));
+    gap: 8px;
+    align-items: end;
+  }
+  .ctrl-group {
+    background: rgba(0,0,0,0.22);
+    border: 1px solid rgba(255,255,255,0.06);
+    padding: 7px;
+    border-radius: 3px;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+  .ctrl-label {
+    font-size: 10px;
+    color: var(--muted);
+    text-transform: uppercase;
+    display: flex;
+    justify-content: space-between;
+  }
+  .ctrl-val {
+    color: var(--amber);
+    font-weight: 700;
+  }
+  input[type="range"] {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 100%;
+    height: 6px;
+    background: #101211;
+    border: 1px solid #3a403c;
+    border-radius: 3px;
+    outline: none;
+  }
+  input[type="range"]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    background: var(--cream);
+    border: 2px solid var(--amber);
+    cursor: ns-resize;
+  }
+  select, button.hw-btn, input[type="text"] {
+    background: #141715;
+    color: var(--cream);
+    border: 1px solid #48504b;
+    padding: 5px 8px;
+    font-family: inherit;
+    font-size: 11px;
+    border-radius: 2px;
+    cursor: pointer;
+  }
+  button.hw-btn:hover, select:hover {
+    border-color: var(--amber);
+  }
+  button.hw-btn.active {
+    background: var(--amber-dim);
+    color: #fff;
+    border-color: var(--amber);
+    box-shadow: 0 0 8px rgba(255, 184, 48, 0.35);
+  }
+  button.hw-btn.pwr-off {
+    background: #1a1212;
+    color: #9e6b6b;
+    border-color: #5c2b2b;
+  }
+  .module-card.powered-off {
+    opacity: 0.68;
+  }
+  /* Oscilloscope CRT Bezel */
+  .crt-frame {
+    background: #070a08;
+    border: 4px solid #2f3531;
+    border-radius: 8px;
+    box-shadow: inset 0 0 24px rgba(0,0,0,0.95);
+    position: relative;
+    overflow: hidden;
+  }
+  canvas {
+    display: block;
+    width: 100%;
+  }
+  /* Dropzone for Dictaphone */
+  .dropzone {
+    border: 1px dashed var(--amber);
+    background: rgba(255, 184, 48, 0.05);
+    padding: 8px;
+    text-align: center;
+    border-radius: 3px;
+    cursor: pointer;
+    font-size: 11px;
+    color: var(--cream);
+    margin-top: 6px;
+  }
+  .dropzone.dragover {
+    background: rgba(255, 184, 48, 0.22);
+  }
+  /* Span helpers */
+  .col-4 { grid-column: span 4; }
+  .col-5 { grid-column: span 5; }
+  .col-6 { grid-column: span 6; }
+  .col-7 { grid-column: span 7; }
+  .col-8 { grid-column: span 8; }
+  .col-12 { grid-column: span 12; }
+  @media (max-width: 1100px) {
+    .col-4, .col-5, .col-6, .col-7, .col-8 { grid-column: span 12; }
+  }
+  /* Pedal Stompboxes */
+  .pedal-rack {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 14px;
+  }
+  @media (max-width: 1100px) {
+    .pedal-rack { grid-template-columns: repeat(2, 1fr); }
+  }
+  .pedal-box {
+    border: 2px solid #444;
+    border-radius: 6px;
+    padding: 12px;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    min-height: 320px;
+    box-shadow: 0 8px 20px rgba(0,0,0,0.6);
+  }
+  .stomp-switch {
+    display: block;
+    width: 100%;
+    font-family: inherit;
+    font-size: 12px;
+    color: var(--muted);
+    margin-top: 12px;
+    background: linear-gradient(180deg, #2a2a2a 0%, #141414 100%);
+    border: 2px solid #555;
+    padding: 10px;
+    text-align: center;
+    font-weight: 800;
+    cursor: pointer;
+    border-radius: 4px;
+    letter-spacing: 1px;
+    transition: background 0.1s, border-color 0.1s, color 0.1s, box-shadow 0.1s;
+  }
+  .stomp-switch:hover {
+    border-color: var(--amber);
+    color: var(--cream);
+  }
+  .stomp-switch.engaged {
+    color: #fff;
+    background: linear-gradient(180deg, #1f3b28 0%, #122417 100%);
+    border-color: var(--crt-green);
+    box-shadow: 0 0 10px rgba(56,255,122,0.3);
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="brand">
+    <div class="brand-badge">KLANGBENCH</div>
+    <div>
+      <div style="font-weight:700; color:var(--cream);">EXPERIMENTAL AUDIO & VINTAGE TEST EQUIPMENT WORKSTATION</div>
+      <div class="brand-sub" id="hw-status">Connecting to real-time CPAL engine...</div>
+    </div>
+  </div>
+
+  <div class="tab-bar">
+    <button class="tab-btn active" onclick="switchTab(0)">[1] LAB INSTRUMENTS & SOURCES</button>
+    <button class="tab-btn" onclick="switchTab(1)">[2] PEDALBOARD / EFFECT CHAIN</button>
+    <button class="tab-btn" onclick="switchTab(2)">[3] TASCAM 4-TRACK & SESSIONS</button>
+  </div>
+
+  <div class="master-strip">
+    <div style="width:120px;">
+      <div class="ctrl-label"><span>MASTER OUT</span><span class="ctrl-val" id="lbl-master-vol">75%</span></div>
+      <input type="range" id="rng-master-vol" min="0" max="1.4" step="0.01" value="0.75"
+        oninput="sendMasterVol(this.value)" />
+    </div>
+    <canvas id="cv-master-meter" width="110" height="28" style="width:110px;height:28px;background:#0b0d0c;border:1px solid #3a403c;"></canvas>
+    <button class="rec-btn" id="btn-master-rec" onclick="toggleMasterRecord()">
+      <span class="led" id="led-rec"></span>
+      <span id="txt-rec">REC 24-BIT WAV</span>
+    </button>
+  </div>
+</header>
+
+<!-- ===================================================================== -->
+<!-- TAB 1: LAB INSTRUMENTS & SOURCES                                      -->
+<!-- ===================================================================== -->
+<section class="tab-view active" id="tab-0">
+  <div class="rack-grid">
+
+    <!-- 7. VISUAL CATHODE-RAY OSCILLOSCOPE -->
+    <div class="module-card col-7">
+      <div class="module-header">
+        <span class="module-title">7. TEKTRONIX / LAB CATHODE-RAY OSCILLOSCOPE</span>
+        <div>
+          <span class="module-tag" id="scope-trig-badge">TRIG'D</span>
+          <button type="button" class="hw-btn active" id="btn-scope-phosphor" onclick="togglePhosphor()">PHOSPHOR: P31 GREEN</button>
+        </div>
+      </div>
+      <div class="crt-frame">
+        <canvas id="cv-scope" width="680" height="220"></canvas>
+      </div>
+      <div class="controls-grid" style="margin-top:8px;">
+        <div class="ctrl-group">
+          <div class="ctrl-label"><span>TIMEBASE</span><span class="ctrl-val" id="val-scope-tb">2.5 ms/div</span></div>
+          <input type="range" id="rng-scope-tb" min="0.2" max="30" step="0.1" value="2.5" oninput="updateScope()" />
+        </div>
+        <div class="ctrl-group">
+          <div class="ctrl-label"><span>VOLTS / DIV</span><span class="ctrl-val" id="val-scope-v">0.50 V/div</span></div>
+          <input type="range" id="rng-scope-v" min="0.1" max="3.0" step="0.05" value="0.5" oninput="updateScope()" />
+        </div>
+        <div class="ctrl-group">
+          <div class="ctrl-label"><span>TRIGGER MODE</span></div>
+          <select id="sel-scope-trig" onchange="updateScope()">
+            <option value="Auto">AUTO</option>
+            <option value="Normal">NORMAL</option>
+            <option value="RisingEdge" selected>EDGE RISING</option>
+            <option value="FallingEdge">EDGE FALLING</option>
+          </select>
+        </div>
+        <div class="ctrl-group">
+          <div class="ctrl-label"><span>TRIG THRESHOLD</span><span class="ctrl-val" id="val-scope-th">0.05 V</span></div>
+          <input type="range" id="rng-scope-th" min="-0.9" max="0.9" step="0.02" value="0.05" oninput="updateScope()" />
+        </div>
+        <div class="ctrl-group">
+          <div class="ctrl-label"><span>PERSISTENCE</span><span class="ctrl-val" id="val-scope-pers">82%</span></div>
+          <input type="range" id="rng-scope-pers" min="0.15" max="0.95" step="0.02" value="0.82" oninput="updateScope()" />
+        </div>
+      </div>
+    </div>
+
+    <!-- 1. TAG-101 AUDIO SIGNAL GENERATOR -->
+    <div class="module-card col-5" id="card-tag101">
+      <div class="module-header">
+        <span class="module-title">1. TAG-101 AUDIO SIGNAL GENERATOR</span>
+        <div>
+          <span class="module-tag">WIEN BRIDGE 10Hz–1MHz</span>
+          <button type="button" class="hw-btn active" id="btn-tag-pwr" onclick="toggleTagPower()">PWR ON</button>
+        </div>
+      </div>
+      <div style="display:flex; align-items:center; justify-content:space-between; background:#0d0f0e; border:1px solid #353b37; padding:8px 12px; margin-bottom:8px;">
+        <div>
+          <div style="font-size:10px;color:var(--muted);">TUNED FREQUENCY</div>
+          <div style="font-size:20px;font-weight:800;color:var(--amber);" id="disp-tag-freq">220.0 Hz</div>
+        </div>
+        <div style="text-align:right;">
+          <div style="font-size:10px;color:var(--muted);">XFMR >0dBV SAT</div>
+          <span class="led" id="led-tag-sat"></span>
+        </div>
+      </div>
+      <div class="controls-grid">
+        <div class="ctrl-group">
+          <div class="ctrl-label"><span>MAIN DIAL (10–100)</span><span class="ctrl-val" id="val-tag-dial">22.0</span></div>
+          <input type="range" id="rng-tag-dial" min="10" max="100" step="0.2" value="22" oninput="updateTag101()" />
+        </div>
+        <div class="ctrl-group">
+          <div class="ctrl-label"><span>DECADE MULTIPLIER</span></div>
+          <select id="sel-tag-decade" onchange="updateTag101()">
+            <option value="X1">x1 (10–100 Hz)</option>
+            <option value="X10" selected>x10 (100–1k Hz)</option>
+            <option value="X100">x100 (1k–10k Hz)</option>
+            <option value="X1k">x1k (10k–100k Hz)</option>
+            <option value="X10k">x10k (100k–1M Hz)</option>
+            <option value="X100k">x100k (1 MHz)</option>
+          </select>
+        </div>
+        <div class="ctrl-group">
+          <div class="ctrl-label"><span>WAVEFORM</span></div>
+          <select id="sel-tag-wave" onchange="updateTag101()">
+            <option value="Sine" selected>PURE SINE</option>
+            <option value="Square">FAST SQUARE</option>
+          </select>
+        </div>
+        <div class="ctrl-group">
+          <div class="ctrl-label"><span>ATTENUATOR</span></div>
+          <select id="sel-tag-att" onchange="updateTag101()">
+            <option value="0" selected>0 dB</option>
+            <option value="-10">-10 dB</option>
+            <option value="-20">-20 dB</option>
+            <option value="-30">-30 dB</option>
+            <option value="-40">-40 dB</option>
+            <option value="-50">-50 dB</option>
+          </select>
+        </div>
+        <div class="ctrl-group">
+          <div class="ctrl-label"><span>FINE OUTPUT POT</span><span class="ctrl-val" id="val-tag-fine">0.95 V</span></div>
+          <input type="range" id="rng-tag-fine" min="0" max="1.35" step="0.01" value="0.95" oninput="updateTag101()" />
+        </div>
+      </div>
+    </div>
+
+    <!-- 2. BRÜEL & KJÆR 2107 FREQUENCY ANALYZER -->
+    <div class="module-card col-4" id="card-bk2107">
+      <div class="module-header">
+        <span class="module-title">2. BRÜEL & KJÆR 2107 ANALYZER</span>
+        <div>
+          <span style="font-size:10px;margin-right:6px;">OVL <span class="led" id="led-bk2107-ovl"></span></span>
+          <button type="button" class="hw-btn active" id="btn-bk2107-pwr" onclick="toggleBk2107Power()">PWR ON</button>
+        </div>
+      </div>
+      <canvas id="cv-bk2107-meter" width="320" height="78" style="background:#14120e; border:1px solid #4a4332; margin-bottom:8px;"></canvas>
+      <div class="controls-grid">
+        <div class="ctrl-group">
+          <div class="ctrl-label"><span>CENTER FREQ</span><span class="ctrl-val" id="val-bk2107-freq">440 Hz</span></div>
+          <input type="range" id="rng-bk2107-freq" min="25" max="12000" step="1" value="440" oninput="updateBk2107()" />
+        </div>
+        <div class="ctrl-group">
+          <div class="ctrl-label"><span>FILTER Q (1–120)</span><span class="ctrl-val" id="val-bk2107-q">35.0</span></div>
+          <input type="range" id="rng-bk2107-q" min="1" max="120" step="0.5" value="35" oninput="updateBk2107()" />
+        </div>
+        <div class="ctrl-group">
+          <div class="ctrl-label"><span>SENSITIVITY</span><span class="ctrl-val" id="val-bk2107-sens">+12 dB</span></div>
+          <input type="range" id="rng-bk2107-sens" min="-20" max="40" step="1" value="12" oninput="updateBk2107()" />
+        </div>
+        <div class="ctrl-group">
+          <div class="ctrl-label"><span>BALLISTIC RESPONSE</span></div>
+          <select id="sel-bk2107-mode" onchange="updateBk2107()">
+            <option value="rms" selected>SLOW RMS (Damped)</option>
+            <option value="peak">FAST PEAK</option>
+          </select>
+        </div>
+      </div>
+    </div>
+
+    <!-- 3. EG&G PRINCETON APPLIED RESEARCH MODEL 124A LOCK-IN AMPLIFIER -->
+    <div class="module-card par-style col-8" id="card-par124a">
+      <div class="module-header">
+        <span class="module-title">3. EG&G PRINCETON APPLIED RESEARCH MODEL 124A LOCK-IN AMPLIFIER</span>
+        <div style="display:flex;align-items:center;gap:10px;">
+          <span style="font-size:10px;">PRE-PSD OVL <span class="led" id="led-par-pre"></span></span>
+          <span style="font-size:10px;">DC OUT OVL <span class="led" id="led-par-post"></span></span>
+          <button type="button" class="hw-btn active" id="btn-par-pwr" onclick="toggleParPower()">PWR ON</button>
+        </div>
+      </div>
+      <div style="display:grid; grid-template-columns: 200px 1fr; gap:10px;">
+        <canvas id="cv-par-meter" width="200" height="90" style="background:#0f1419; border:1px solid #3e4c59;"></canvas>
+        <div class="controls-grid">
+          <div class="ctrl-group">
+            <div class="ctrl-label"><span>INPUT COUPLING</span></div>
+            <select id="sel-par-coup" onchange="updatePar124a()">
+              <option value="Direct">DIRECT (FET)</option>
+              <option value="Transformer" selected>TRANSFORMER</option>
+            </select>
+          </div>
+          <div class="ctrl-group">
+            <div class="ctrl-label"><span>SIG FILTER MODE</span></div>
+            <select id="sel-par-fmode" onchange="updatePar124a()">
+              <option value="Flat">FLAT</option>
+              <option value="Bandpass" selected>BANDPASS (Q 1-100)</option>
+              <option value="Notch">NOTCH (-80 dB)</option>
+              <option value="LowPass">LOW PASS (12dB/oct)</option>
+              <option value="HighPass">HIGH PASS</option>
+            </select>
+          </div>
+          <div class="ctrl-group">
+            <div class="ctrl-label"><span>SIG FREQ / Q</span><span class="ctrl-val" id="val-par-fq">220Hz Q15</span></div>
+            <input type="range" id="rng-par-freq" min="20" max="5000" step="1" value="220" oninput="updatePar124a()" />
+            <input type="range" id="rng-par-q" min="1" max="100" step="1" value="15" oninput="updatePar124a()" />
+          </div>
+          <div class="ctrl-group">
+            <div class="ctrl-label"><span>REF SOURCE & HZ</span><span class="ctrl-val" id="val-par-ref">223 Hz</span></div>
+            <select id="sel-par-ext" onchange="updatePar124a()">
+              <option value="int" selected>INTERNAL OSC</option>
+              <option value="ext">EXT (TAG-101)</option>
+            </select>
+            <input type="range" id="rng-par-refhz" min="10" max="2000" step="0.5" value="223" oninput="updatePar124a()" />
+          </div>
+          <div class="ctrl-group">
+            <div class="ctrl-label"><span>PHASE QUAD + VERNIER</span><span class="ctrl-val" id="val-par-ph">15°</span></div>
+            <select id="sel-par-quad" onchange="updatePar124a()">
+              <option value="0" selected>0° QUADRANT</option>
+              <option value="1">90° QUADRANT</option>
+              <option value="2">180° QUADRANT</option>
+              <option value="3">270° QUADRANT</option>
+            </select>
+            <input type="range" id="rng-par-vern" min="0" max="100" step="0.5" value="15" oninput="updatePar124a()" />
+          </div>
+          <div class="ctrl-group">
+            <div class="ctrl-label"><span>TIME CONSTANT & SLOPE</span></div>
+            <select id="sel-par-tc" onchange="updatePar124a()">
+              <option value="0">1 ms</option>
+              <option value="1">3 ms</option>
+              <option value="2" selected>10 ms</option>
+              <option value="3">30 ms</option>
+              <option value="4">100 ms</option>
+              <option value="5">300 ms</option>
+              <option value="6">1 s</option>
+              <option value="7">3 s</option>
+              <option value="8">10 s</option>
+              <option value="9">30 s</option>
+              <option value="10">100 s</option>
+              <option value="11">300 s</option>
+            </select>
+            <select id="sel-par-slope" onchange="updatePar124a()">
+              <option value="6">6 dB/octave</option>
+              <option value="12" selected>12 dB/octave</option>
+            </select>
+          </div>
+          <div class="ctrl-group">
+            <div class="ctrl-label"><span>DYNAMIC RESERVE</span></div>
+            <select id="sel-par-dyn" onchange="updatePar124a()">
+              <option value="LoDrift">LO DRIFT</option>
+              <option value="Normal" selected>NORMAL</option>
+              <option value="HiDynamicReserve">HI RESERVE (1000x)</option>
+            </select>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 4. BRÜEL & KJÆR TYPE 1621 TUNABLE BAND PASS FILTER -->
+    <div class="module-card col-4" id="card-bk1621">
+      <div class="module-header">
+        <span class="module-title">4. B&K TYPE 1621 BAND PASS FILTER</span>
+        <div style="display:flex;align-items:center;gap:8px;">
+          <span style="font-size:10px;">OVL <span class="led" id="led-bk1621-ovl"></span></span>
+          <button type="button" class="hw-btn active" id="btn-1621-pwr" onclick="toggleBk1621Power()">PWR ON</button>
+        </div>
+      </div>
+      <div style="display:flex; justify-content:space-between; background:#0d0f0e; padding:6px 10px; margin-bottom:8px; border:1px solid #353b37;">
+        <span>TUNED: <strong style="color:var(--amber)" id="disp-bk1621-hz">650.0 Hz</strong></span>
+        <span>PHASE SHIFT: <strong style="color:var(--cyan)" id="disp-bk1621-ph">+0.0°</strong></span>
+      </div>
+      <div class="controls-grid">
+        <div class="ctrl-group">
+          <div class="ctrl-label"><span>BANDWIDTH (ISO R266)</span></div>
+          <select id="sel-1621-bw" onchange="updateBk1621()">
+            <option value="Pct3" selected>3% Narrow (Q≈33)</option>
+            <option value="Pct23">23% 1/3-Oct (Q≈4.3)</option>
+            <option value="Linear">LINEAR BYPASS</option>
+          </select>
+        </div>
+        <div class="ctrl-group">
+          <div class="ctrl-label"><span>FREQUENCY DECADE</span></div>
+          <select id="sel-1621-dec" onchange="updateBk1621()">
+            <option value="D0_2To2">0.2 – 2 Hz</option>
+            <option value="D2To20">2 – 20 Hz</option>
+            <option value="D20To200">20 – 200 Hz</option>
+            <option value="D200To2000" selected>200 – 2000 Hz</option>
+            <option value="D2kTo20k">2k – 20 kHz</option>
+          </select>
+        </div>
+        <div class="ctrl-group">
+          <div class="ctrl-label"><span>TUNING DIAL (0.2–2.0)</span><span class="ctrl-val" id="val-1621-dial">0.65</span></div>
+          <input type="range" id="rng-1621-dial" min="0.2" max="2.0" step="0.01" value="0.65" oninput="updateBk1621()" />
+        </div>
+        <div class="ctrl-group">
+          <div class="ctrl-label"><span>INPUT RANGE & SWEEP</span></div>
+          <div style="display:flex; gap:4px;">
+            <button type="button" class="hw-btn" id="btn-1621-range" onclick="toggleBk1621Range()">1.0V RMS</button>
+            <button type="button" class="hw-btn" id="btn-1621-sweep" onclick="toggleBk1621Sweep()">MANUAL</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 5. KOMA ELEKTRONIK STROM MOBILE EMULATION -->
+    <div class="module-card col-4" id="card-strom">
+      <div class="module-header">
+        <span class="module-title">5. KOMA STROM MOBILE (CV / LFO / SAG)</span>
+        <div style="display:flex;align-items:center;gap:6px;">
+          <span class="module-tag" id="disp-strom-sag">RAIL: 8.6V</span>
+          <button type="button" class="hw-btn active" id="btn-strom-pwr" onclick="toggleStromPower()">PWR ON</button>
+        </div>
+      </div>
+      <div class="controls-grid">
+        <div class="ctrl-group">
+          <div class="ctrl-label"><span>LFO 1 RATE & SHAPE</span><span class="ctrl-val" id="val-lfo1-r">0.45 Hz</span></div>
+          <input type="range" id="rng-lfo1-rate" min="0.05" max="20" step="0.05" value="0.45" oninput="updateStrom()" />
+          <select id="sel-lfo1-shape" onchange="updateStrom()">
+            <option value="Sine" selected>SINE</option>
+            <option value="Triangle">TRIANGLE</option>
+            <option value="Ramp">RAMP</option>
+            <option value="SampleAndHold">STEPPED S&H</option>
+          </select>
+        </div>
+        <div class="ctrl-group">
+          <div class="ctrl-label"><span>LFO 1 DEPTH & TARGET</span><span class="ctrl-val" id="val-lfo1-d">25%</span></div>
+          <input type="range" id="rng-lfo1-depth" min="0" max="1" step="0.02" value="0.25" oninput="updateStrom()" />
+          <select id="sel-lfo1-tgt" onchange="updateStrom()">
+            <option value="None">NONE</option>
+            <option value="Tag101Freq">TAG-101 FREQ</option>
+            <option value="Bk2107Freq" selected>B&K 2107 FREQ</option>
+            <option value="Par124aRef">PAR 124A REF</option>
+            <option value="Bk1621Freq">B&K 1621 TUNE</option>
+            <option value="FuncGenFreq">FUNC GEN FREQ</option>
+            <option value="DictaphoneSpeed">TAPE SPEED</option>
+          </select>
+        </div>
+        <div class="ctrl-group">
+          <div class="ctrl-label"><span>POWER SAG (3V–9V)</span><span class="ctrl-val" id="val-strom-v">8.6 V</span></div>
+          <input type="range" id="rng-strom-v" min="3.0" max="9.0" step="0.1" value="8.6" oninput="updateStrom()" />
+        </div>
+        <div class="ctrl-group">
+          <div class="ctrl-label"><span>50/60Hz MAINS HUM</span><span class="ctrl-val" id="val-strom-hum">4%</span></div>
+          <input type="range" id="rng-strom-hum" min="0" max="1" step="0.01" value="0.04" oninput="updateStrom()" />
+        </div>
+      </div>
+    </div>
+
+    <!-- 6. GENERAL PURPOSE LAB FUNCTION GENERATOR -->
+    <div class="module-card col-4" id="card-funcgen">
+      <div class="module-header">
+        <span class="module-title">6. LAB FUNCTION GENERATOR</span>
+        <button type="button" class="hw-btn active" id="btn-fg-pwr" onclick="toggleFgPower()">PWR ON</button>
+      </div>
+      <div class="controls-grid">
+        <div class="ctrl-group">
+          <div class="ctrl-label"><span>WAVEFORM</span></div>
+          <select id="sel-fg-wave" onchange="updateFuncGen()">
+            <option value="Sine">SINE</option>
+            <option value="Triangle" selected>TRIANGLE</option>
+            <option value="SquarePwm">SQUARE (VARIABLE PWM)</option>
+            <option value="Sawtooth">SAWTOOTH</option>
+            <option value="Ramp">RAMP</option>
+            <option value="WhiteNoise">WHITE NOISE</option>
+            <option value="PinkNoise">PINK NOISE</option>
+          </select>
+        </div>
+        <div class="ctrl-group">
+          <div class="ctrl-label"><span>FREQUENCY</span><span class="ctrl-val" id="val-fg-hz">110 Hz</span></div>
+          <input type="range" id="rng-fg-hz" min="5" max="4000" step="1" value="110" oninput="updateFuncGen()" />
+        </div>
+        <div class="ctrl-group">
+          <div class="ctrl-label"><span>PWM / FM DEPTH</span><span class="ctrl-val" id="val-fg-pwm">50%</span></div>
+          <input type="range" id="rng-fg-pwm" min="0.05" max="0.95" step="0.01" value="0.50" oninput="updateFuncGen()" />
+          <input type="range" id="rng-fg-fm" min="0" max="1" step="0.02" value="0.15" oninput="updateFuncGen()" />
+        </div>
+        <div class="ctrl-group">
+          <div class="ctrl-label"><span>AM DEPTH & LEVEL</span><span class="ctrl-val" id="val-fg-lvl">45%</span></div>
+          <input type="range" id="rng-fg-am" min="0" max="1" step="0.02" value="0.10" oninput="updateFuncGen()" />
+          <input type="range" id="rng-fg-lvl" min="0" max="1" step="0.02" value="0.45" oninput="updateFuncGen()" />
+        </div>
+      </div>
+    </div>
+
+    <!-- 8. LO-FI TAPE MICRO-SAMPLER / DICTAPHONE -->
+    <div class="module-card col-12" id="card-dictaphone">
+      <div class="module-header">
+        <span class="module-title">8. LO-FI TAPE MICRO-SAMPLER / DICTAPHONE (300Hz–3.8kHz BANDLIMITED)</span>
+        <div style="display:flex; gap:8px; align-items:center;">
+          <span class="module-tag" id="disp-dict-name">01: Radiophonic Telemetry & Organ Loop</span>
+          <button type="button" class="hw-btn active" id="btn-dict-p0" onclick="selectDictPreset(0)">TAPE 1</button>
+          <button type="button" class="hw-btn" id="btn-dict-p1" onclick="selectDictPreset(1)">TAPE 2</button>
+          <button type="button" class="hw-btn" id="btn-dict-p2" onclick="selectDictPreset(2)">TAPE 3</button>
+          <button type="button" class="hw-btn active" id="btn-dict-play" onclick="toggleDictPlay()">PLAYING</button>
+          <button type="button" class="hw-btn" id="btn-dict-rev" onclick="toggleDictReverse()">FORWARD</button>
+          <button type="button" class="hw-btn active" id="btn-dict-pwr" onclick="toggleDictPower()">PWR ON</button>
+        </div>
+      </div>
+      <div class="controls-grid">
+        <div class="ctrl-group">
+          <div class="ctrl-label"><span>VARISPEED (±2 OCT)</span><span class="ctrl-val" id="val-dict-spd">+0.00 Oct</span></div>
+          <input type="range" id="rng-dict-spd" min="-2.0" max="2.0" step="0.02" value="0.0" oninput="updateDictaphone()" />
+        </div>
+        <div class="ctrl-group">
+          <div class="ctrl-label"><span>WOW & FLUTTER</span><span class="ctrl-val" id="val-dict-wf">35%</span></div>
+          <input type="range" id="rng-dict-wf" min="0" max="1" step="0.02" value="0.35" oninput="updateDictaphone()" />
+        </div>
+        <div class="ctrl-group">
+          <div class="ctrl-label"><span>OXIDE TAPE HISS</span><span class="ctrl-val" id="val-dict-hiss">18%</span></div>
+          <input type="range" id="rng-dict-hiss" min="0" max="1" step="0.02" value="0.18" oninput="updateDictaphone()" />
+        </div>
+        <div class="ctrl-group">
+          <div class="ctrl-label"><span>HEAD SATURATION</span><span class="ctrl-val" id="val-dict-drv">45%</span></div>
+          <input type="range" id="rng-dict-drv" min="0" max="1" step="0.02" value="0.45" oninput="updateDictaphone()" />
+        </div>
+        <div class="ctrl-group">
+          <div class="ctrl-label"><span>OUTPUT LEVEL</span><span class="ctrl-val" id="val-dict-lvl">55%</span></div>
+          <input type="range" id="rng-dict-lvl" min="0" max="1" step="0.02" value="0.55" oninput="updateDictaphone()" />
+        </div>
+      </div>
+      <div class="dropzone" id="dict-dropzone" onclick="document.getElementById('file-upload').click()">
+        DRAG & DROP AUDIO FILE (.WAV, .MP3, .FLAC) HERE OR CLICK TO BROWSE MICRO-CASSETTE REEL
+        <input type="file" id="file-upload" accept=".wav,.mp3,.flac" style="display:none" onchange="uploadSampleFile(this.files[0])" />
+      </div>
+    </div>
+
+  </div>
+</section>
+
+<!-- ===================================================================== -->
+<!-- TAB 2: PEDALBOARD / EFFECT CHAIN                                      -->
+<!-- ===================================================================== -->
+<section class="tab-view" id="tab-1">
+  <div class="module-card" style="margin-bottom:14px;">
+    <div class="module-header">
+      <span class="module-title">MODULAR REORDERABLE EFFECT RACK — SIGNAL ROUTING ORDER</span>
+      <span class="module-tag">CLICK ARROWS TO REORDER PEDALS IN SERIES</span>
+    </div>
+    <div id="pedal-order-bar" style="display:flex; gap:12px; align-items:center; justify-content:space-around; padding:6px;"></div>
+  </div>
+
+  <div class="pedal-rack">
+    <!-- 1. STEREO CHORUS -->
+    <div class="pedal-box" style="background:linear-gradient(180deg,#1a3442 0%,#101f29 100%); border-color:#3a7ca5;">
+      <div>
+        <div class="module-header">
+          <span class="module-title" style="color:#66d9ff;">ULTRA CHORUS UC-200</span>
+          <span class="led on-green" id="led-ped-chorus"></span>
+        </div>
+        <div class="ctrl-group" style="margin-bottom:8px;">
+          <div class="ctrl-label"><span>ANTI-PHASE LFO RATE</span><span class="ctrl-val" id="val-ch-rate">0.85 Hz</span></div>
+          <input type="range" id="rng-ch-rate" min="0.1" max="8.0" step="0.05" value="0.85" oninput="updateChorus()" />
+        </div>
+        <div class="ctrl-group" style="margin-bottom:8px;">
+          <div class="ctrl-label"><span>DELAY DEPTH (5–30ms)</span><span class="ctrl-val" id="val-ch-depth">45%</span></div>
+          <input type="range" id="rng-ch-depth" min="0" max="1" step="0.02" value="0.45" oninput="updateChorus()" />
+        </div>
+        <div class="ctrl-group" style="margin-bottom:8px;">
+          <div class="ctrl-label"><span>TONE / EQ</span><span class="ctrl-val" id="val-ch-tone">65%</span></div>
+          <input type="range" id="rng-ch-tone" min="0" max="1" step="0.02" value="0.65" oninput="updateChorus()" />
+        </div>
+        <div class="ctrl-group">
+          <div class="ctrl-label"><span>WET / DRY MIX</span><span class="ctrl-val" id="val-ch-mix">40%</span></div>
+          <input type="range" id="rng-ch-mix" min="0" max="1" step="0.02" value="0.40" oninput="updateChorus()" />
+        </div>
+      </div>
+      <button type="button" class="stomp-switch engaged" id="stomp-chorus" onclick="toggleChorusBypass()">CHORUS ACTIVE</button>
+    </div>
+
+    <!-- 2. VINTAGE DIGITAL DELAY -->
+    <div class="pedal-box" style="background:linear-gradient(180deg,#3a2618 0%,#21150d 100%); border-color:#a66c38;">
+      <div>
+        <div class="module-header">
+          <span class="module-title" style="color:#ffb86c;">VINTAGE DELAY VD-400</span>
+          <span class="led on-green" id="led-ped-delay"></span>
+        </div>
+        <div class="ctrl-group" style="margin-bottom:8px;">
+          <div class="ctrl-label"><span>DELAY TIME (10–1500ms)</span><span class="ctrl-val" id="val-dl-ms">365 ms</span></div>
+          <input type="range" id="rng-dl-ms" min="10" max="1500" step="5" value="365" oninput="updateDelay()" />
+        </div>
+        <div class="ctrl-group" style="margin-bottom:8px;">
+          <div class="ctrl-label"><span>FEEDBACK (SELF-OSC)</span><span class="ctrl-val" id="val-dl-fb">52%</span></div>
+          <input type="range" id="rng-dl-fb" min="0" max="1.15" step="0.01" value="0.52" oninput="updateDelay()" />
+        </div>
+        <div class="ctrl-group" style="margin-bottom:8px;">
+          <div class="ctrl-label"><span>HI-CUT DAMPING</span><span class="ctrl-val" id="val-dl-hc">3200 Hz</span></div>
+          <input type="range" id="rng-dl-hc" min="600" max="12000" step="50" value="3200" oninput="updateDelay()" />
+        </div>
+        <div class="ctrl-group">
+          <div class="ctrl-label"><span>PING-PONG & MIX</span><span class="ctrl-val" id="val-dl-mix">35%</span></div>
+          <input type="range" id="rng-dl-mix" min="0" max="1" step="0.02" value="0.35" oninput="updateDelay()" />
+        </div>
+      </div>
+      <button type="button" class="stomp-switch engaged" id="stomp-delay" onclick="toggleDelayBypass()">DELAY ACTIVE</button>
+    </div>
+
+    <!-- 3. COOPER FX OUTWARD MK2 -->
+    <div class="pedal-box" style="background:linear-gradient(180deg,#2d223b 0%,#191321 100%); border-color:#8257b5;">
+      <div>
+        <div class="module-header">
+          <span class="module-title" style="color:#d6b2ff;">COOPER FX OUTWARD MK2</span>
+          <span class="led on-green" id="led-ped-outward"></span>
+        </div>
+        <div class="ctrl-group" style="margin-bottom:8px;">
+          <div class="ctrl-label"><span>GRANULAR MODE</span></div>
+          <select id="sel-ow-mode" onchange="updateOutward()">
+            <option value="TimeStretch" selected>TIME STRETCH</option>
+            <option value="Freeze">FREEZE BUFFER</option>
+            <option value="GlitchStutter">GLITCH / STUTTER</option>
+          </select>
+        </div>
+        <div class="ctrl-group" style="margin-bottom:8px;">
+          <div class="ctrl-label"><span>GRAIN SIZE (5–500ms)</span><span class="ctrl-val" id="val-ow-sz">85 ms</span></div>
+          <input type="range" id="rng-ow-sz" min="5" max="500" step="2" value="85" oninput="updateOutward()" />
+        </div>
+        <div class="ctrl-group" style="margin-bottom:8px;">
+          <div class="ctrl-label"><span>PITCH (-12..+12 ST)</span><span class="ctrl-val" id="val-ow-pt">0.0 st</span></div>
+          <input type="range" id="rng-ow-pt" min="-12" max="12" step="0.5" value="0" oninput="updateOutward()" />
+        </div>
+        <div class="ctrl-group">
+          <div class="ctrl-label"><span>WET / DRY MIX</span><span class="ctrl-val" id="val-ow-mix">35%</span></div>
+          <input type="range" id="rng-ow-mix" min="0" max="1" step="0.02" value="0.35" oninput="updateOutward()" />
+        </div>
+      </div>
+      <button type="button" class="stomp-switch engaged" id="stomp-outward" onclick="toggleOutwardBypass()">OUTWARD ACTIVE</button>
+    </div>
+
+    <!-- 4. ALESIS WEDGE REVERB -->
+    <div class="pedal-box" style="background:linear-gradient(180deg,#25282c 0%,#141619 100%); border-color:#687482;">
+      <div>
+        <div class="module-header">
+          <span class="module-title" style="color:#a8c5e6;">ALESIS WEDGE 8-FDN REVERB</span>
+          <span class="led on-green" id="led-ped-reverb"></span>
+        </div>
+        <div class="ctrl-group" style="margin-bottom:8px;">
+          <div class="ctrl-label"><span>ROOM SIZE</span><span class="ctrl-val" id="val-rv-sz">72%</span></div>
+          <input type="range" id="rng-rv-sz" min="0.1" max="1.0" step="0.02" value="0.72" oninput="updateReverb()" />
+        </div>
+        <div class="ctrl-group" style="margin-bottom:8px;">
+          <div class="ctrl-label"><span>DECAY TIME</span><span class="ctrl-val" id="val-rv-dec">78%</span></div>
+          <input type="range" id="rng-rv-dec" min="0.1" max="0.97" step="0.01" value="0.78" oninput="updateReverb()" />
+        </div>
+        <div class="ctrl-group" style="margin-bottom:8px;">
+          <div class="ctrl-label"><span>PRE-DELAY & DAMPING</span><span class="ctrl-val" id="val-rv-pre">24 ms</span></div>
+          <input type="range" id="rng-rv-pre" min="0" max="150" step="2" value="24" oninput="updateReverb()" />
+          <input type="range" id="rng-rv-dmp" min="0.05" max="0.95" step="0.02" value="0.45" oninput="updateReverb()" />
+        </div>
+        <div class="ctrl-group">
+          <div class="ctrl-label"><span>REVERB MIX</span><span class="ctrl-val" id="val-rv-mix">32%</span></div>
+          <input type="range" id="rng-rv-mix" min="0" max="1" step="0.02" value="0.32" oninput="updateReverb()" />
+        </div>
+      </div>
+      <button type="button" class="stomp-switch engaged" id="stomp-reverb" onclick="toggleReverbBypass()">WEDGE ACTIVE</button>
+    </div>
+  </div>
+</section>
+
+<!-- ===================================================================== -->
+<!-- TAB 3: TASCAM 4-TRACK CASSETTE RECORDER & SESSIONS                    -->
+<!-- ===================================================================== -->
+<section class="tab-view" id="tab-2">
+  <div class="rack-grid">
+    <!-- 4-TRACK MIXER STRIPS -->
+    <div class="module-card col-7">
+      <div class="module-header">
+        <span class="module-title">9. TASCAM PORTASTUDIO 4-TRACK CASSETTE MIXER</span>
+        <span class="module-tag">TANH OXIDE SATURATION + CROSSTALK MATRIX</span>
+      </div>
+      <div style="display:grid; grid-template-columns: repeat(4, 1fr); gap:10px;" id="tascam-strips">
+        <!-- Populated dynamically on load -->
+      </div>
+    </div>
+
+    <!-- CASSETTE DECK TRANSPORT & REELS -->
+    <div class="module-card col-5">
+      <div class="module-header">
+        <span class="module-title">GLOBAL TAPE TRANSPORT & VARISPEED</span>
+        <span class="module-tag" id="disp-tape-counter">000.0 s</span>
+      </div>
+      <canvas id="cv-cassette" width="420" height="145" style="background:#101211; border:1px solid #3c423e; margin-bottom:10px;"></canvas>
+      <div style="display:flex; gap:8px; margin-bottom:10px;">
+        <button class="hw-btn active" id="btn-tr-play" onclick="setTransport('Play')" style="flex:1;padding:10px;">▶ PLAY</button>
+        <button class="hw-btn" id="btn-tr-stop" onclick="setTransport('Stop')" style="flex:1;padding:10px;">■ STOP</button>
+        <button class="hw-btn" id="btn-tr-rew" onclick="setTransport('Rewind')" style="flex:1;padding:10px;">◀◀ REW</button>
+        <button class="hw-btn" id="btn-tr-ff" onclick="setTransport('FastForward')" style="flex:1;padding:10px;">▶▶ FFWD</button>
+      </div>
+      <div class="controls-grid">
+        <div class="ctrl-group">
+          <div class="ctrl-label"><span>VARISPEED (±15%)</span><span class="ctrl-val" id="val-ts-vari">+0.0%</span></div>
+          <input type="range" id="rng-ts-vari" min="-15" max="15" step="0.5" value="0" oninput="updateTascamGlobal()" />
+        </div>
+        <div class="ctrl-group">
+          <div class="ctrl-label"><span>TAPE SATURATION (k)</span><span class="ctrl-val" id="val-ts-drv">2.2</span></div>
+          <input type="range" id="rng-ts-drv" min="0.5" max="5.0" step="0.1" value="2.2" oninput="updateTascamGlobal()" />
+        </div>
+        <div class="ctrl-group">
+          <div class="ctrl-label"><span>INTER-TRACK BLEED</span><span class="ctrl-val" id="val-ts-xt">4.5%</span></div>
+          <input type="range" id="rng-ts-xt" min="0" max="0.25" step="0.005" value="0.045" oninput="updateTascamGlobal()" />
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<script>
+let ws = null;
+let latestSnap = null;
+let reelAngle = 0;
+let lastPedalOrderKey = '';
+
+function setText(id, text) {
+  const el = document.getElementById(id);
+  if (el && el.textContent !== text) {
+    el.textContent = text;
+  }
+}
+
+function setPowerBtn(btnId, cardId, enabled) {
+  const btn = document.getElementById(btnId);
+  if (btn) {
+    btn.classList.toggle('active', enabled);
+    btn.classList.toggle('pwr-off', !enabled);
+    const label = enabled ? 'PWR ON' : 'PWR OFF';
+    if (btn.textContent !== label) {
+      btn.textContent = label;
+    }
+  }
+  if (cardId) {
+    const card = document.getElementById(cardId);
+    if (card) {
+      card.classList.toggle('powered-off', !enabled);
+    }
+  }
+}
+
+// Build 4-Track Mixer Strips HTML
+function initTascamStrips() {
+  const container = document.getElementById('tascam-strips');
+  let html = '';
+  for (let ch = 0; ch < 4; ch++) {
+    html += `
+      <div class="ctrl-group" style="padding:10px;">
+        <div style="font-weight:800; color:var(--amber); text-align:center; margin-bottom:4px;">TRACK ${ch+1}</div>
+        <canvas id="cv-vu-${ch}" width="120" height="54" style="background:#14120e;border:1px solid #4a4332;margin-bottom:6px;"></canvas>
+        <button class="hw-btn" id="btn-t-rec-${ch}" onclick="toggleTrackFlag(${ch}, 'rec_arm')">● REC ARM</button>
+        <div class="ctrl-label" style="margin-top:6px;"><span>INPUT SOURCE</span></div>
+        <select id="sel-t-src-${ch}" onchange="updateTascamStrip(${ch})">
+          <option value="Tag101">TAG-101 OSC</option>
+          <option value="FuncGen">FUNC GEN</option>
+          <option value="Dictaphone">DICTAPHONE</option>
+          <option value="Bk2107">B&K 2107</option>
+          <option value="Bk1621">B&K 1621</option>
+          <option value="Par124a">PAR 124A</option>
+          <option value="PedalBus">PEDAL BUS</option>
+        </select>
+        <div class="ctrl-label" style="margin-top:6px;"><span>LEVEL TRIM</span><span class="ctrl-val" id="val-t-lvl-${ch}">0.80</span></div>
+        <input type="range" id="rng-t-lvl-${ch}" min="0" max="1.5" step="0.02" value="0.80" oninput="updateTascamStrip(${ch})" />
+        <div class="ctrl-label" style="margin-top:6px;"><span>PAN (L/R)</span><span class="ctrl-val" id="val-t-pan-${ch}">0.0</span></div>
+        <input type="range" id="rng-t-pan-${ch}" min="-1" max="1" step="0.05" value="0" oninput="updateTascamStrip(${ch})" />
+        <div style="display:flex; gap:4px; margin-top:6px;">
+          <button class="hw-btn" style="flex:1" id="btn-t-mute-${ch}" onclick="toggleTrackFlag(${ch}, 'mute')">MUTE</button>
+          <button class="hw-btn" style="flex:1" id="btn-t-solo-${ch}" onclick="toggleTrackFlag(${ch}, 'solo')">SOLO</button>
+        </div>
+      </div>
+    `;
+  }
+  container.innerHTML = html;
+}
+initTascamStrips();
+
+function switchTab(idx) {
+  document.querySelectorAll('.tab-btn').forEach((b, i) => b.classList.toggle('active', i === idx));
+  document.querySelectorAll('.tab-view').forEach((v, i) => v.classList.toggle('active', i === idx));
+}
+
+let lastUserActionTime = 0;
+
+function sendCmd(cmd, data) {
+  lastUserActionTime = performance.now();
+  if (ws && ws.readyState === WebSocket.OPEN) {
+    ws.send(JSON.stringify(data !== undefined ? { cmd, data } : { cmd }));
+  }
+}
+
+function connectWs() {
+  const proto = location.protocol === 'https:' ? 'wss:' : 'ws:';
+  ws = new WebSocket(`${proto}//${location.host}/ws`);
+  ws.onmessage = (ev) => {
+    const incoming = JSON.parse(ev.data);
+    if (latestSnap && (performance.now() - lastUserActionTime < 150)) {
+      // Preserve optimistic parameter edits while in-flight WS frames catch up,
+      // but still update all real-time oscilloscope traces and ballistic meters
+      incoming.tag101 = latestSnap.tag101;
+      incoming.bk2107 = latestSnap.bk2107;
+      incoming.par124a = latestSnap.par124a;
+      incoming.bk1621 = latestSnap.bk1621;
+      incoming.strom = latestSnap.strom;
+      incoming.func_gen = latestSnap.func_gen;
+      incoming.scope = latestSnap.scope;
+      incoming.dictaphone = {
+        ...latestSnap.dictaphone,
+        loaded_name: incoming.dictaphone.loaded_name,
+      };
+      incoming.pedalboard = latestSnap.pedalboard;
+      incoming.tascam = latestSnap.tascam;
+    }
+    latestSnap = incoming;
+    renderTelemetry(latestSnap);
+  };
+  ws.onclose = () => setTimeout(connectWs, 1000);
+}
+connectWs();
+
+// Keyboard shortcut Space to toggle recording when not typing in an input
+window.addEventListener('keydown', (e) => {
+  if (e.code === 'Space' && e.target.tagName !== 'INPUT' && e.target.tagName !== 'SELECT') {
+    e.preventDefault();
+    toggleMasterRecord();
+  }
+});
+
+// Drag & Drop Sample Upload
+const dz = document.getElementById('dict-dropzone');
+dz.addEventListener('dragover', (e) => { e.preventDefault(); dz.classList.add('dragover'); });
+dz.addEventListener('dragleave', () => dz.classList.remove('dragover'));
+dz.addEventListener('drop', (e) => {
+  e.preventDefault();
+  dz.classList.remove('dragover');
+  if (e.dataTransfer.files.length > 0) uploadSampleFile(e.dataTransfer.files[0]);
+});
+
+async function uploadSampleFile(file) {
+  if (!file) return;
+  const fd = new FormData();
+  fd.append('file', file);
+  document.getElementById('disp-dict-name').textContent = 'Decoding ' + file.name + '...';
+  try {
+    await fetch('/api/upload-sample', { method: 'POST', body: fd });
+  } catch (err) {
+    console.error(err);
+  }
+}
+
+// Parameter Updaters
+function sendMasterVol(v) {
+  document.getElementById('lbl-master-vol').textContent = Math.round(v * 100) + '%';
+  sendCmd('SetMasterVolume', parseFloat(v));
+}
+function toggleMasterRecord() { sendCmd('ToggleMasterRecord'); }
+
+function updateScope() {
+  if (!latestSnap) return;
+  const p = {
+    timebase_ms_div: parseFloat(document.getElementById('rng-scope-tb').value),
+    volts_per_div: parseFloat(document.getElementById('rng-scope-v').value),
+    trigger_mode: document.getElementById('sel-scope-trig').value,
+    trigger_threshold: parseFloat(document.getElementById('rng-scope-th').value),
+    phosphor: latestSnap.scope.phosphor,
+    persistence: parseFloat(document.getElementById('rng-scope-pers').value),
+  };
+  document.getElementById('val-scope-tb').textContent = p.timebase_ms_div.toFixed(1) + ' ms/div';
+  document.getElementById('val-scope-v').textContent = p.volts_per_div.toFixed(2) + ' V/div';
+  document.getElementById('val-scope-th').textContent = p.trigger_threshold.toFixed(2) + ' V';
+  document.getElementById('val-scope-pers').textContent = Math.round(p.persistence * 100) + '%';
+  sendCmd('SetScope', p);
+}
+function togglePhosphor() {
+  if (!latestSnap) return;
+  latestSnap.scope.phosphor = latestSnap.scope.phosphor === 'GreenP31' ? 'AmberP7' : 'GreenP31';
+  sendCmd('SetScope', latestSnap.scope);
+  renderTelemetry(latestSnap);
+}
+
+function updateTag101() {
+  if (!latestSnap) return;
+  const p = {
+    enabled: latestSnap.tag101.enabled,
+    dial_freq: parseFloat(document.getElementById('rng-tag-dial').value),
+    decade: document.getElementById('sel-tag-decade').value,
+    waveform: document.getElementById('sel-tag-wave').value,
+    attenuator_db: parseInt(document.getElementById('sel-tag-att').value, 10),
+    fine_level: parseFloat(document.getElementById('rng-tag-fine').value),
+  };
+  latestSnap.tag101 = p;
+  setText('val-tag-dial', p.dial_freq.toFixed(1));
+  setText('val-tag-fine', p.fine_level.toFixed(2) + ' V');
+  sendCmd('SetTag101', p);
+}
+function toggleTagPower() {
+  if (!latestSnap) return;
+  latestSnap.tag101.enabled = !latestSnap.tag101.enabled;
+  sendCmd('SetTag101', latestSnap.tag101);
+  renderTelemetry(latestSnap);
+}
+
+function updateBk2107() {
+  if (!latestSnap) return;
+  const p = {
+    enabled: latestSnap.bk2107.enabled,
+    center_freq_hz: parseFloat(document.getElementById('rng-bk2107-freq').value),
+    q_factor: parseFloat(document.getElementById('rng-bk2107-q').value),
+    sensitivity_db: parseFloat(document.getElementById('rng-bk2107-sens').value),
+    fast_peak_meter: document.getElementById('sel-bk2107-mode').value === 'peak',
+    audio_monitor: latestSnap.bk2107.audio_monitor,
+  };
+  latestSnap.bk2107 = p;
+  setText('val-bk2107-freq', Math.round(p.center_freq_hz) + ' Hz');
+  setText('val-bk2107-q', p.q_factor.toFixed(1));
+  setText('val-bk2107-sens', (p.sensitivity_db >= 0 ? '+' : '') + p.sensitivity_db + ' dB');
+  sendCmd('SetBk2107', p);
+}
+function toggleBk2107Power() {
+  if (!latestSnap) return;
+  latestSnap.bk2107.enabled = !latestSnap.bk2107.enabled;
+  sendCmd('SetBk2107', latestSnap.bk2107);
+  renderTelemetry(latestSnap);
+}
+
+function updatePar124a() {
+  if (!latestSnap) return;
+  const p = {
+    ...latestSnap.par124a,
+    coupling: document.getElementById('sel-par-coup').value,
+    filter_mode: document.getElementById('sel-par-fmode').value,
+    filter_freq_hz: parseFloat(document.getElementById('rng-par-freq').value),
+    filter_q: parseFloat(document.getElementById('rng-par-q').value),
+    external_ref: document.getElementById('sel-par-ext').value === 'ext',
+    internal_ref_hz: parseFloat(document.getElementById('rng-par-refhz').value),
+    phase_quadrant: parseInt(document.getElementById('sel-par-quad').value, 10),
+    phase_vernier_deg: parseFloat(document.getElementById('rng-par-vern').value),
+    tc_index: parseInt(document.getElementById('sel-par-tc').value, 10),
+    slope_12db: document.getElementById('sel-par-slope').value === '12',
+    dynamic_reserve: document.getElementById('sel-par-dyn').value,
+  };
+  latestSnap.par124a = p;
+  setText('val-par-fq', `${Math.round(p.filter_freq_hz)}Hz Q${Math.round(p.filter_q)}`);
+  setText('val-par-ref', `${p.internal_ref_hz.toFixed(1)} Hz`);
+  setText('val-par-ph', `${(p.phase_quadrant * 90 + p.phase_vernier_deg).toFixed(1)}°`);
+  sendCmd('SetPar124a', p);
+}
+function toggleParPower() {
+  if (!latestSnap) return;
+  latestSnap.par124a.enabled = !latestSnap.par124a.enabled;
+  sendCmd('SetPar124a', latestSnap.par124a);
+  renderTelemetry(latestSnap);
+}
+
+function updateBk1621() {
+  if (!latestSnap) return;
+  const p = {
+    ...latestSnap.bk1621,
+    bandwidth: document.getElementById('sel-1621-bw').value,
+    decade: document.getElementById('sel-1621-dec').value,
+    dial_tuning: parseFloat(document.getElementById('rng-1621-dial').value),
+  };
+  latestSnap.bk1621 = p;
+  setText('val-1621-dial', p.dial_tuning.toFixed(2));
+  sendCmd('SetBk1621', p);
+}
+function toggleBk1621Power() {
+  if (!latestSnap) return;
+  latestSnap.bk1621.enabled = !latestSnap.bk1621.enabled;
+  sendCmd('SetBk1621', latestSnap.bk1621);
+  renderTelemetry(latestSnap);
+}
+function toggleBk1621Range() {
+  if (!latestSnap) return;
+  latestSnap.bk1621.range_0_2v = !latestSnap.bk1621.range_0_2v;
+  sendCmd('SetBk1621', latestSnap.bk1621);
+  renderTelemetry(latestSnap);
+}
+function toggleBk1621Sweep() {
+  if (!latestSnap) return;
+  latestSnap.bk1621.auto_sweep = !latestSnap.bk1621.auto_sweep;
+  sendCmd('SetBk1621', latestSnap.bk1621);
+  renderTelemetry(latestSnap);
+}
+
+function updateStrom() {
+  if (!latestSnap) return;
+  const p = {
+    ...latestSnap.strom,
+    lfo1_rate_hz: parseFloat(document.getElementById('rng-lfo1-rate').value),
+    lfo1_shape: document.getElementById('sel-lfo1-shape').value,
+    lfo1_depth: parseFloat(document.getElementById('rng-lfo1-depth').value),
+    lfo1_target: document.getElementById('sel-lfo1-tgt').value,
+    supply_voltage: parseFloat(document.getElementById('rng-strom-v').value),
+    ripple_hum: parseFloat(document.getElementById('rng-strom-hum').value),
+  };
+  latestSnap.strom = p;
+  setText('val-lfo1-r', p.lfo1_rate_hz.toFixed(2) + ' Hz');
+  setText('val-lfo1-d', Math.round(p.lfo1_depth * 100) + '%');
+  setText('val-strom-v', p.supply_voltage.toFixed(1) + ' V');
+  setText('val-strom-hum', Math.round(p.ripple_hum * 100) + '%');
+  sendCmd('SetStrom', p);
+}
+function toggleStromPower() {
+  if (!latestSnap) return;
+  latestSnap.strom.enabled = !latestSnap.strom.enabled;
+  sendCmd('SetStrom', latestSnap.strom);
+  renderTelemetry(latestSnap);
+}
+
+function updateFuncGen() {
+  if (!latestSnap) return;
+  const p = {
+    ...latestSnap.func_gen,
+    waveform: document.getElementById('sel-fg-wave').value,
+    freq_hz: parseFloat(document.getElementById('rng-fg-hz').value),
+    pwm_duty: parseFloat(document.getElementById('rng-fg-pwm').value),
+    fm_depth: parseFloat(document.getElementById('rng-fg-fm').value),
+    am_depth: parseFloat(document.getElementById('rng-fg-am').value),
+    level: parseFloat(document.getElementById('rng-fg-lvl').value),
+  };
+  latestSnap.func_gen = p;
+  setText('val-fg-hz', Math.round(p.freq_hz) + ' Hz');
+  setText('val-fg-pwm', Math.round(p.pwm_duty * 100) + '%');
+  setText('val-fg-lvl', Math.round(p.level * 100) + '%');
+  sendCmd('SetFuncGen', p);
+}
+function toggleFgPower() {
+  if (!latestSnap) return;
+  latestSnap.func_gen.enabled = !latestSnap.func_gen.enabled;
+  sendCmd('SetFuncGen', latestSnap.func_gen);
+  renderTelemetry(latestSnap);
+}
+
+function updateDictaphone() {
+  if (!latestSnap) return;
+  const p = {
+    ...latestSnap.dictaphone,
+    speed_octaves: parseFloat(document.getElementById('rng-dict-spd').value),
+    wow_flutter: parseFloat(document.getElementById('rng-dict-wf').value),
+    tape_hiss: parseFloat(document.getElementById('rng-dict-hiss').value),
+    head_drive: parseFloat(document.getElementById('rng-dict-drv').value),
+    level: parseFloat(document.getElementById('rng-dict-lvl').value),
+  };
+  latestSnap.dictaphone = p;
+  setText('val-dict-spd', (p.speed_octaves >= 0 ? '+' : '') + p.speed_octaves.toFixed(2) + ' Oct');
+  setText('val-dict-wf', Math.round(p.wow_flutter * 100) + '%');
+  setText('val-dict-hiss', Math.round(p.tape_hiss * 100) + '%');
+  setText('val-dict-drv', Math.round(p.head_drive * 100) + '%');
+  setText('val-dict-lvl', Math.round(p.level * 100) + '%');
+  sendCmd('SetDictaphone', p);
+}
+function selectDictPreset(idx) {
+  if (latestSnap) {
+    latestSnap.dictaphone.active_preset = idx;
+    renderTelemetry(latestSnap);
+  }
+  sendCmd('SelectDictaphonePreset', idx);
+}
+function toggleDictPlay() {
+  if (!latestSnap) return;
+  latestSnap.dictaphone.playing = !latestSnap.dictaphone.playing;
+  sendCmd('SetDictaphone', latestSnap.dictaphone);
+  renderTelemetry(latestSnap);
+}
+function toggleDictReverse() {
+  if (!latestSnap) return;
+  latestSnap.dictaphone.reverse = !latestSnap.dictaphone.reverse;
+  sendCmd('SetDictaphone', latestSnap.dictaphone);
+  renderTelemetry(latestSnap);
+}
+function toggleDictPower() {
+  if (!latestSnap) return;
+  latestSnap.dictaphone.enabled = !latestSnap.dictaphone.enabled;
+  sendCmd('SetDictaphone', latestSnap.dictaphone);
+  renderTelemetry(latestSnap);
+}
+
+// Tab 2: Pedals
+function updateChorus() {
+  if (!latestSnap) return;
+  const p = {
+    ...latestSnap.pedalboard.chorus,
+    rate_hz: parseFloat(document.getElementById('rng-ch-rate').value),
+    depth: parseFloat(document.getElementById('rng-ch-depth').value),
+    tone: parseFloat(document.getElementById('rng-ch-tone').value),
+    wet_dry: parseFloat(document.getElementById('rng-ch-mix').value),
+  };
+  latestSnap.pedalboard.chorus = p;
+  setText('val-ch-rate', p.rate_hz.toFixed(2) + ' Hz');
+  setText('val-ch-depth', Math.round(p.depth * 100) + '%');
+  setText('val-ch-tone', Math.round(p.tone * 100) + '%');
+  setText('val-ch-mix', Math.round(p.wet_dry * 100) + '%');
+  sendCmd('SetChorus', p);
+}
+function toggleChorusBypass() {
+  if (!latestSnap) return;
+  latestSnap.pedalboard.chorus.bypass = !latestSnap.pedalboard.chorus.bypass;
+  sendCmd('SetChorus', latestSnap.pedalboard.chorus);
+  renderTelemetry(latestSnap);
+}
+
+function updateDelay() {
+  if (!latestSnap) return;
+  const p = {
+    ...latestSnap.pedalboard.delay,
+    delay_ms: parseFloat(document.getElementById('rng-dl-ms').value),
+    feedback: parseFloat(document.getElementById('rng-dl-fb').value),
+    high_cut_hz: parseFloat(document.getElementById('rng-dl-hc').value),
+    mix: parseFloat(document.getElementById('rng-dl-mix').value),
+  };
+  latestSnap.pedalboard.delay = p;
+  setText('val-dl-ms', Math.round(p.delay_ms) + ' ms');
+  setText('val-dl-fb', Math.round(p.feedback * 100) + '%');
+  setText('val-dl-hc', Math.round(p.high_cut_hz) + ' Hz');
+  setText('val-dl-mix', Math.round(p.mix * 100) + '%');
+  sendCmd('SetDelay', p);
+}
+function toggleDelayBypass() {
+  if (!latestSnap) return;
+  latestSnap.pedalboard.delay.bypass = !latestSnap.pedalboard.delay.bypass;
+  sendCmd('SetDelay', latestSnap.pedalboard.delay);
+  renderTelemetry(latestSnap);
+}
+
+function updateOutward() {
+  if (!latestSnap) return;
+  const p = {
+    ...latestSnap.pedalboard.outward,
+    mode: document.getElementById('sel-ow-mode').value,
+    grain_size_ms: parseFloat(document.getElementById('rng-ow-sz').value),
+    pitch_semitones: parseFloat(document.getElementById('rng-ow-pt').value),
+    mix: parseFloat(document.getElementById('rng-ow-mix').value),
+  };
+  latestSnap.pedalboard.outward = p;
+  setText('val-ow-sz', Math.round(p.grain_size_ms) + ' ms');
+  setText('val-ow-pt', (p.pitch_semitones >= 0 ? '+' : '') + p.pitch_semitones.toFixed(1) + ' st');
+  setText('val-ow-mix', Math.round(p.mix * 100) + '%');
+  sendCmd('SetOutward', p);
+}
+function toggleOutwardBypass() {
+  if (!latestSnap) return;
+  latestSnap.pedalboard.outward.bypass = !latestSnap.pedalboard.outward.bypass;
+  sendCmd('SetOutward', latestSnap.pedalboard.outward);
+  renderTelemetry(latestSnap);
+}
+
+function updateReverb() {
+  if (!latestSnap) return;
+  const p = {
+    ...latestSnap.pedalboard.reverb,
+    room_size: parseFloat(document.getElementById('rng-rv-sz').value),
+    decay_time: parseFloat(document.getElementById('rng-rv-dec').value),
+    pre_delay_ms: parseFloat(document.getElementById('rng-rv-pre').value),
+    hf_damping: parseFloat(document.getElementById('rng-rv-dmp').value),
+    mix: parseFloat(document.getElementById('rng-rv-mix').value),
+  };
+  latestSnap.pedalboard.reverb = p;
+  setText('val-rv-sz', Math.round(p.room_size * 100) + '%');
+  setText('val-rv-dec', Math.round(p.decay_time * 100) + '%');
+  setText('val-rv-pre', Math.round(p.pre_delay_ms) + ' ms');
+  setText('val-rv-mix', Math.round(p.mix * 100) + '%');
+  sendCmd('SetReverb', p);
+}
+function toggleReverbBypass() {
+  if (!latestSnap) return;
+  latestSnap.pedalboard.reverb.bypass = !latestSnap.pedalboard.reverb.bypass;
+  sendCmd('SetReverb', latestSnap.pedalboard.reverb);
+  renderTelemetry(latestSnap);
+}
+function swapPedals(a, b) {
+  if (latestSnap) {
+    const tmp = latestSnap.pedalboard.order[a];
+    latestSnap.pedalboard.order[a] = latestSnap.pedalboard.order[b];
+    latestSnap.pedalboard.order[b] = tmp;
+    renderTelemetry(latestSnap);
+  }
+  sendCmd('SwapPedalSlots', { slot_a: a, slot_b: b });
+}
+
+// Tab 3: Tascam 4-Track
+function toggleTrackFlag(ch, field) {
+  if (!latestSnap) return;
+  latestSnap.tascam.channels[ch][field] = !latestSnap.tascam.channels[ch][field];
+  sendCmd('SetTascam', latestSnap.tascam);
+  renderTelemetry(latestSnap);
+}
+function updateTascamStrip(ch) {
+  if (!latestSnap) return;
+  const ts = JSON.parse(JSON.stringify(latestSnap.tascam));
+  ts.channels[ch].input_source = document.getElementById(`sel-t-src-${ch}`).value;
+  ts.channels[ch].level_trim = parseFloat(document.getElementById(`rng-t-lvl-${ch}`).value);
+  ts.channels[ch].pan = parseFloat(document.getElementById(`rng-t-pan-${ch}`).value);
+  latestSnap.tascam = ts;
+  setText(`val-t-lvl-${ch}`, ts.channels[ch].level_trim.toFixed(2));
+  setText(`val-t-pan-${ch}`, ts.channels[ch].pan.toFixed(2));
+  sendCmd('SetTascam', ts);
+}
+function setTransport(mode) {
+  if (!latestSnap) return;
+  latestSnap.tascam.transport = mode;
+  sendCmd('SetTascam', latestSnap.tascam);
+  renderTelemetry(latestSnap);
+}
+function updateTascamGlobal() {
+  if (!latestSnap) return;
+  const ts = {
+    ...latestSnap.tascam,
+    varispeed_pct: parseFloat(document.getElementById('rng-ts-vari').value),
+    tape_drive: parseFloat(document.getElementById('rng-ts-drv').value),
+    crosstalk_amt: parseFloat(document.getElementById('rng-ts-xt').value),
+  };
+  latestSnap.tascam = ts;
+  setText('val-ts-vari', (ts.varispeed_pct >= 0 ? '+' : '') + ts.varispeed_pct.toFixed(1) + '%');
+  setText('val-ts-drv', ts.tape_drive.toFixed(1));
+  setText('val-ts-xt', (ts.crosstalk_amt * 100).toFixed(1) + '%');
+  sendCmd('SetTascam', ts);
+}
+
+// =========================================================================
+// CANVAS RENDERERS (CRT OSCILLOSCOPE, BALLISTIC METERS, CASSETTE REELS)
+// =========================================================================
+
+function renderTelemetry(s) {
+  setText('hw-status', `${s.audio_device_name} | ${s.sample_rate} Hz | ${s.recording_filename}`);
+
+  const recBtn = document.getElementById('btn-master-rec');
+  const recLed = document.getElementById('led-rec');
+  recBtn.classList.toggle('recording', s.is_recording);
+  recLed.className = s.is_recording ? 'led on-red' : 'led';
+  setText('txt-rec', s.is_recording ? `REC ${s.recording_seconds.toFixed(1)}s` : 'REC 24-BIT WAV');
+
+  // Power ON/OFF buttons & module card states
+  setPowerBtn('btn-tag-pwr', 'card-tag101', s.tag101.enabled);
+  setPowerBtn('btn-bk2107-pwr', 'card-bk2107', s.bk2107.enabled);
+  setPowerBtn('btn-par-pwr', 'card-par124a', s.par124a.enabled);
+  setPowerBtn('btn-1621-pwr', 'card-bk1621', s.bk1621.enabled);
+  setPowerBtn('btn-strom-pwr', 'card-strom', s.strom.enabled);
+  setPowerBtn('btn-fg-pwr', 'card-funcgen', s.func_gen.enabled);
+  setPowerBtn('btn-dict-pwr', 'card-dictaphone', s.dictaphone.enabled);
+
+  // Scope Phosphor & Trigger badges
+  setText('scope-trig-badge', s.scope_triggered ? "TRIG'D" : 'FREE RUN');
+  setText(
+    'btn-scope-phosphor',
+    s.scope.phosphor === 'GreenP31' ? 'PHOSPHOR: P31 GREEN' : 'PHOSPHOR: P7 AMBER'
+  );
+
+  // Readouts & Overload LEDs
+  setText(
+    'disp-tag-freq',
+    s.tag101_actual_hz >= 1000
+      ? (s.tag101_actual_hz / 1000).toFixed(2) + ' kHz'
+      : s.tag101_actual_hz.toFixed(1) + ' Hz'
+  );
+  document.getElementById('led-tag-sat').className =
+    s.tag101.enabled && s.tag101.fine_level > 1.0 ? 'led on-amber' : 'led';
+  document.getElementById('led-bk2107-ovl').className =
+    s.bk2107_overload ? 'led on-red' : 'led';
+  document.getElementById('led-par-pre').className =
+    s.par124a_pre_overload ? 'led on-red' : 'led';
+  document.getElementById('led-par-post').className =
+    s.par124a_post_overload ? 'led on-red' : 'led';
+  document.getElementById('led-bk1621-ovl').className =
+    s.bk1621_overload ? 'led on-red' : 'led';
+  setText('disp-bk1621-hz', s.bk1621_current_hz.toFixed(1) + ' Hz');
+  setText(
+    'disp-bk1621-ph',
+    (s.bk1621_phase_deg >= 0 ? '+' : '') + s.bk1621_phase_deg.toFixed(1) + '°'
+  );
+
+  const btnRange = document.getElementById('btn-1621-range');
+  btnRange.classList.toggle('active', s.bk1621.range_0_2v);
+  setText('btn-1621-range', s.bk1621.range_0_2v ? '0.2V RMS' : '1.0V RMS');
+
+  const btnSweep = document.getElementById('btn-1621-sweep');
+  btnSweep.classList.toggle('active', s.bk1621.auto_sweep);
+  setText('btn-1621-sweep', s.bk1621.auto_sweep ? 'SWEEPING' : 'MANUAL');
+
+  setText(
+    'disp-strom-sag',
+    `RAIL: ${s.strom.supply_voltage.toFixed(1)}V (${Math.round(s.strom_sag_factor * 100)}%)`
+  );
+
+  // Dictaphone buttons
+  setText('disp-dict-name', s.dictaphone.loaded_name);
+  const btnDictPlay = document.getElementById('btn-dict-play');
+  btnDictPlay.classList.toggle('active', s.dictaphone.playing);
+  setText('btn-dict-play', s.dictaphone.playing ? '▶ PLAYING' : '■ STOPPED');
+
+  const btnDictRev = document.getElementById('btn-dict-rev');
+  btnDictRev.classList.toggle('active', s.dictaphone.reverse);
+  setText('btn-dict-rev', s.dictaphone.reverse ? '◀ REVERSE' : '▶ FORWARD');
+
+  for (let pIdx = 0; pIdx < 3; pIdx++) {
+    const pb = document.getElementById(`btn-dict-p${pIdx}`);
+    if (pb) pb.classList.toggle('active', s.dictaphone.active_preset === pIdx);
+  }
+
+  // Pedalboard Order Bar (only rebuild innerHTML when order actually changes!)
+  const orderKey = s.pedalboard.order.join(',');
+  if (orderKey !== lastPedalOrderKey) {
+    lastPedalOrderKey = orderKey;
+    const orderBar = document.getElementById('pedal-order-bar');
+    orderBar.innerHTML = s.pedalboard.order.map((p, idx) => `
+      <div style="background:#121513;border:1px solid var(--amber);padding:6px 12px;border-radius:3px;display:flex;align-items:center;gap:8px;">
+        ${idx > 0 ? `<button type="button" class="hw-btn" onclick="swapPedals(${idx-1},${idx})">◀</button>` : ''}
+        <strong>SLOT ${idx+1}: ${p.toUpperCase()}</strong>
+        ${idx < 3 ? `<button type="button" class="hw-btn" onclick="swapPedals(${idx},${idx+1})">▶</button>` : ''}
+      </div>
+    `).join('<span style="color:var(--amber)">──▶</span>');
+  }
+
+  // Pedal Stomp states
+  setPedalUi('chorus', !s.pedalboard.chorus.bypass);
+  setPedalUi('delay', !s.pedalboard.delay.bypass);
+  setPedalUi('outward', !s.pedalboard.outward.bypass);
+  setPedalUi('reverb', !s.pedalboard.reverb.bypass);
+
+  // Tascam transport & track buttons
+  setText('disp-tape-counter', s.tascam_counter_sec.toFixed(1) + ' s');
+  document.getElementById('btn-tr-play').classList.toggle('active', s.tascam.transport === 'Play');
+  document.getElementById('btn-tr-stop').classList.toggle('active', s.tascam.transport === 'Stop');
+  document.getElementById('btn-tr-rew').classList.toggle('active', s.tascam.transport === 'Rewind');
+  document.getElementById('btn-tr-ff').classList.toggle('active', s.tascam.transport === 'FastForward');
+
+  for (let ch = 0; ch < 4; ch++) {
+    const cp = s.tascam.channels[ch];
+    document.getElementById(`btn-t-rec-${ch}`).classList.toggle('active', cp.rec_arm);
+    document.getElementById(`btn-t-mute-${ch}`).classList.toggle('active', cp.mute);
+    document.getElementById(`btn-t-solo-${ch}`).classList.toggle('active', cp.solo);
+    drawAnalogMeter(`cv-vu-${ch}`, s.tascam_meters[ch] * 1.35, false, `CH ${ch+1} VU`);
+  }
+
+  drawMasterMeter(s.master_peak_l, s.master_peak_r);
+  drawCrtScope(s);
+  drawAnalogMeter('cv-bk2107-meter', s.bk2107_meter, false, 'B&K 2107 LEVEL');
+  drawAnalogMeter('cv-par-meter', s.par124a_demod_meter, true, 'PAR 124A PSD DEMOD');
+  drawCassetteDeck(s);
+}
+
+function setPedalUi(name, active) {
+  const led = document.getElementById(`led-ped-${name}`);
+  const stomp = document.getElementById(`stomp-${name}`);
+  const wantLed = active ? 'led on-green' : 'led';
+  if (led.className !== wantLed) led.className = wantLed;
+  stomp.classList.toggle('engaged', active);
+  const wantTxt = active ? `● ${name.toUpperCase()} ACTIVE` : `○ ${name.toUpperCase()} BYPASSED`;
+  if (stomp.textContent !== wantTxt) {
+    stomp.textContent = wantTxt;
+  }
+}
+
+function drawMasterMeter(l, r) {
+  const cv = document.getElementById('cv-master-meter');
+  const ctx = cv.getContext('2d');
+  ctx.clearRect(0, 0, cv.width, cv.height);
+  const drawBar = (y, val) => {
+    const w = Math.min(1, val) * (cv.width - 8);
+    const grad = ctx.createLinearGradient(0, 0, cv.width, 0);
+    grad.addColorStop(0, '#38ff7a');
+    grad.addColorStop(0.75, '#ffb830');
+    grad.addColorStop(1, '#ff3b30');
+    ctx.fillStyle = grad;
+    ctx.fillRect(4, y, w, 9);
+  };
+  drawBar(3, l);
+  drawBar(15, r);
+}
+
+function drawCrtScope(s) {
+  const cv = document.getElementById('cv-scope');
+  const ctx = cv.getContext('2d');
+  const w = cv.width, h = cv.height;
+
+  // Phosphor persistence decay trail
+  const alpha = 1.0 - Math.min(0.95, Math.max(0.1, s.scope.persistence));
+  ctx.fillStyle = `rgba(6, 10, 8, ${alpha.toFixed(2)})`;
+  ctx.fillRect(0, 0, w, h);
+
+  // Graticule grid
+  ctx.strokeStyle = 'rgba(90, 130, 100, 0.22)';
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  for (let x = 0; x <= w; x += w / 10) { ctx.moveTo(x, 0); ctx.lineTo(x, h); }
+  for (let y = 0; y <= h; y += h / 6) { ctx.moveTo(0, y); ctx.lineTo(w, y); }
+  ctx.stroke();
+
+  // Trigger threshold marker
+  const thY = h / 2 - (s.scope.trigger_threshold / 1.25) * (h / 2);
+  ctx.strokeStyle = 'rgba(255, 80, 60, 0.35)';
+  ctx.setLineDash([4, 4]);
+  ctx.beginPath();
+  ctx.moveTo(0, thY);
+  ctx.lineTo(w, thY);
+  ctx.stroke();
+  ctx.setLineDash([]);
+
+  // Secondary Reference/LFO trace (Ch2)
+  ctx.save();
+  ctx.strokeStyle = 'rgba(74, 216, 255, 0.55)';
+  ctx.lineWidth = 1.4;
+  ctx.beginPath();
+  const ch2 = s.scope_ch2;
+  for (let i = 0; i < ch2.length; i++) {
+    const x = (i / (ch2.length - 1)) * w;
+    const y = h / 2 - (ch2[i] / 1.25) * (h / 2);
+    if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+  }
+  ctx.stroke();
+  ctx.restore();
+
+  // Primary CRT Phosphor Beam with Bloom
+  const beamColor = s.scope.phosphor === 'GreenP31' ? '#38ff7a' : '#ffae2b';
+  ctx.save();
+  ctx.strokeStyle = beamColor;
+  ctx.shadowColor = beamColor;
+  ctx.shadowBlur = 12;
+  ctx.lineWidth = 2.4;
+  ctx.beginPath();
+  const ch1 = s.scope_ch1;
+  for (let i = 0; i < ch1.length; i++) {
+    const x = (i / (ch1.length - 1)) * w;
+    const y = h / 2 - (ch1[i] / 1.25) * (h / 2);
+    if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+  }
+  ctx.stroke();
+  ctx.restore();
+}
+
+function drawAnalogMeter(canvasId, value, centerZero, title) {
+  const cv = document.getElementById(canvasId);
+  if (!cv) return;
+  const ctx = cv.getContext('2d');
+  const w = cv.width, h = cv.height;
+
+  // Warm backlit meter face
+  const grad = ctx.createRadialGradient(w/2, h, 5, w/2, h/2, w*0.7);
+  grad.addColorStop(0, '#382c16');
+  grad.addColorStop(1, '#17130b');
+  ctx.fillStyle = grad;
+  ctx.fillRect(0, 0, w, h);
+
+  // Scale arc
+  const cx = w / 2, cy = h + 14;
+  const r = h - 4;
+  ctx.strokeStyle = '#9c8658';
+  ctx.lineWidth = 1.5;
+  ctx.beginPath();
+  ctx.arc(cx, cy, r, Math.PI * 1.22, Math.PI * 1.78);
+  ctx.stroke();
+
+  // Label
+  ctx.fillStyle = '#c9b07a';
+  ctx.font = '10px monospace';
+  ctx.textAlign = 'center';
+  ctx.fillText(title, cx, 14);
+
+  // Needle angle
+  let norm = centerZero ? (value + 1.2) / 2.4 : value / 1.2;
+  norm = Math.max(0, Math.min(1, norm));
+  const angle = Math.PI * (1.22 + norm * 0.56);
+
+  ctx.strokeStyle = '#ffb830';
+  ctx.lineWidth = 2.0;
+  ctx.beginPath();
+  ctx.moveTo(cx, cy);
+  ctx.lineTo(cx + Math.cos(angle) * (r + 6), cy + Math.sin(angle) * (r + 6));
+  ctx.stroke();
+}
+
+function drawCassetteDeck(s) {
+  const cv = document.getElementById('cv-cassette');
+  if (!cv) return;
+  const ctx = cv.getContext('2d');
+  const w = cv.width, h = cv.height;
+  ctx.clearRect(0, 0, w, h);
+
+  // Cassette shell window
+  ctx.strokeStyle = '#48504b';
+  ctx.fillStyle = '#181b19';
+  ctx.fillRect(20, 15, w - 40, h - 30);
+  ctx.strokeRect(20, 15, w - 40, h - 30);
+
+  if (s.tascam.transport === 'Play') reelAngle += 0.06;
+  else if (s.tascam.transport === 'FastForward') reelAngle += 0.25;
+  else if (s.tascam.transport === 'Rewind') reelAngle -= 0.25;
+
+  const drawReel = (rx, ry, radius) => {
+    ctx.strokeStyle = '#ffb830';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.arc(rx, ry, radius, 0, Math.PI * 2);
+    ctx.stroke();
+    for (let k = 0; k < 3; k++) {
+      const a = reelAngle + (k * Math.PI * 2) / 3;
+      ctx.beginPath();
+      ctx.moveTo(rx + Math.cos(a) * 8, ry + Math.sin(a) * 8);
+      ctx.lineTo(rx + Math.cos(a) * radius, ry + Math.sin(a) * radius);
+      ctx.stroke();
+    }
+  };
+
+  drawReel(w * 0.33, h * 0.5, 34);
+  drawReel(w * 0.67, h * 0.5, 34);
+
+  ctx.fillStyle = '#e8e2d0';
+  ctx.font = '11px monospace';
+  ctx.textAlign = 'center';
+  ctx.fillText(`TASCAM 4-TRACK HI-BIAS TYPE II | ${s.tascam.transport.toUpperCase()}`, w / 2, h - 22);
+}
+</script>
+</body>
+</html>
